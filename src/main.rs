@@ -7,7 +7,7 @@ use base64::encode as base64_encode;
 use std::cmp::Ordering;
 
 fn main() {
-    println!("{}", String::from_utf8(crack_single_byte_xor(&decode("1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736").unwrap())).unwrap());
+
 }
 
 fn fixed_xor(input: &Vec<u8>, xor: &Vec<u8>) -> Vec<u8>
@@ -28,12 +28,12 @@ fn crack_single_byte_xor(input: &Vec<u8>) -> Vec<u8>
         })
         .collect::<Vec<Vec<u8>>>();
 
-    strings.sort_unstable_by(sort_by_score);
+    strings.sort_unstable_by(sort_by_score_desc);
 
     return strings.first().unwrap().clone();
 }
 
-fn sort_by_score(left: &Vec<u8>, right: &Vec<u8>) -> Ordering
+fn sort_by_score_desc(left: &Vec<u8>, right: &Vec<u8>) -> Ordering
 {
     let left_score = english_score(left);
     let right_score = english_score(right);
@@ -52,7 +52,7 @@ fn english_score(input: &Vec<u8>) -> i64
     let mut score = 0;
 
     for byte in input {
-        if *byte < 32 || *byte > 122 {
+        if (*byte < 32 || *byte > 122) && *byte != 10 {
             score -= 1000;
         }
 
@@ -67,6 +67,9 @@ fn english_score(input: &Vec<u8>) -> i64
 #[cfg(test)]
 mod test
 {
+    use std::fs::File;
+    use std::io::BufReader;
+    use std::io::BufRead;
     use super::*;
 
     #[test]
@@ -95,5 +98,19 @@ mod test
         let expected = "Cooking MC's like a pound of bacon";
 
         assert_eq!(expected, String::from_utf8(crack_single_byte_xor(&decode(input).unwrap())).unwrap());
+    }
+
+    #[test]
+    fn case4test()
+    {
+        let file = BufReader::new(File::open("4.txt").unwrap());
+        let mut lines = file.lines()
+            .filter_map(|x| x.ok())
+            .map(|x| decode(x).unwrap())
+            .map(|x| crack_single_byte_xor(&x))
+            .collect::<Vec<Vec<u8>>>();
+
+        lines.sort_unstable_by(sort_by_score_desc);
+        assert_eq!("Now that the party is jumping\n", String::from_utf8(lines.first().unwrap().clone()).unwrap());
     }
 }
