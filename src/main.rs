@@ -5,15 +5,26 @@ use hex::decode;
 use hex::encode as hex_encode;
 use base64::encode as base64_encode;
 use std::cmp::Ordering;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::BufRead;
+use std::io::Read;
 
 fn main() {
-
 }
 
-fn fixed_xor(input: &Vec<u8>, xor: &Vec<u8>) -> Vec<u8>
+fn fixed_xor(input: &Vec<u8>, mask: &Vec<u8>) -> Vec<u8>
 {
     return input.into_iter()
-        .zip(xor.into_iter())
+        .zip(mask.into_iter())
+        .map(|(x, y)| x ^ y)
+        .collect::<Vec<u8>>();
+}
+
+fn repeating_xor(input: &Vec<u8>, key: &Vec<u8>) -> Vec<u8>
+{
+    return input.into_iter()
+        .zip(key.iter().cycle().into_iter())
         .map(|(x, y)| x ^ y)
         .collect::<Vec<u8>>();
 }
@@ -112,5 +123,17 @@ mod test
 
         lines.sort_unstable_by(sort_by_score_desc);
         assert_eq!("Now that the party is jumping\n", String::from_utf8(lines.first().unwrap().clone()).unwrap());
+    }
+
+    #[test]
+    fn case5test()
+    {
+        let key: Vec<u8> = "ICE".bytes().collect();
+        let bytes: Vec<u8> = "Burning 'em, if you ain't quick and nimble
+I go crazy when I hear a cymbal".bytes()
+            .collect();
+        let xord = repeating_xor(&bytes, &key);
+
+        assert_eq!("0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f", hex_encode(&xord));
     }
 }
