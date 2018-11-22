@@ -6,3 +6,4 @@ authors = ["Nick Pfundstein <npfundstein@criticalmix.com>"]
 [dependencies]
 hex = "0.3.2"
 base64 = "0.10.0"
+bit-vec = "0.5.0"

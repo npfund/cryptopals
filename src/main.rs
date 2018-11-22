@@ -1,5 +1,6 @@
 extern crate hex;
 extern crate base64;
+extern crate bit_vec;
 
 use hex::decode;
 use hex::encode as hex_encode;
@@ -9,8 +10,10 @@ use std::fs::File;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::io::Read;
+use bit_vec::BitVec;
 
 fn main() {
+    println!("{}", hamming_distance(&"this is a test".bytes().collect(), &"wokka wokka!!!".bytes().collect()))
 }
 
 fn fixed_xor(input: &Vec<u8>, mask: &Vec<u8>) -> Vec<u8>
@@ -73,6 +76,24 @@ fn english_score(input: &Vec<u8>) -> i64
     }
 
     return score;
+}
+
+fn hamming_distance(left: &Vec<u8>, right: &Vec<u8>) -> u32
+{
+    let mut left_bits = BitVec::from_bytes(left);
+    let mut right_bits = BitVec::from_bytes(right);
+    let left_len = left_bits.len();
+    let right_len = right_bits.len();
+
+    if left_len > right_len {
+        right_bits.grow(left_len - right_len, false);
+    } else if right_len > left_len {
+        left_bits.grow(right_len - left_len, false);
+    }
+
+    return left_bits.iter()
+        .zip(right_bits.iter())
+        .fold(0, |sum, (l, r)| sum + if l == r { 0 } else { 1 });
 }
 
 #[cfg(test)]
