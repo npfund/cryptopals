@@ -5,6 +5,7 @@ extern crate bit_vec;
 use hex::decode;
 use hex::encode as hex_encode;
 use base64::encode as base64_encode;
+use base64::decode as base64_decode;
 use std::cmp::Ordering;
 use std::fs::File;
 use std::io::BufReader;
@@ -13,10 +14,35 @@ use std::io::Read;
 use bit_vec::BitVec;
 
 fn main() {
-    println!("{}", hamming_distance(&"this is a test".bytes().collect(), &"wokka wokka!!!".bytes().collect()))
+    let input = BufReader::new(File::open("6.txt").expect("File not found!"));
+    let base64 = input.lines()
+        .map(|x| x.unwrap())
+        .collect::<Vec<String>>()
+        .join("");
+    let bytes = base64_decode(&base64).unwrap();
+
+    let key_size = (2..=40).fold((0, 0), |size, k| {
+        let distance = hamming_distance(&bytes[0..k], &bytes[k..2 * k]) / k as u32;
+
+        if size.1 == 0 || distance < size.1 {
+            (k, distance)
+        } else {
+            size
+        }
+    }).0;
+
+    let mut key = String::new();
+    for i in 0..key_size {
+        let block = bytes.chunks(key_size)
+            .filter_map(|c| c.get(i))
+            .map(|b| b.clone())
+            .collect::<Vec<u8>>();
+
+
+    }
 }
 
-fn fixed_xor(input: &Vec<u8>, mask: &Vec<u8>) -> Vec<u8>
+fn fixed_xor(input: &[u8], mask: &[u8]) -> Vec<u8>
 {
     return input.into_iter()
         .zip(mask.into_iter())
@@ -78,7 +104,7 @@ fn english_score(input: &Vec<u8>) -> i64
     return score;
 }
 
-fn hamming_distance(left: &Vec<u8>, right: &Vec<u8>) -> u32
+fn hamming_distance(left: &[u8], right: &[u8]) -> u32
 {
     let mut left_bits = BitVec::from_bytes(left);
     let mut right_bits = BitVec::from_bytes(right);
@@ -156,5 +182,13 @@ I go crazy when I hear a cymbal".bytes()
         let xord = repeating_xor(&bytes, &key);
 
         assert_eq!("0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f", hex_encode(&xord));
+    }
+
+    #[test]
+    fn hamming_test()
+    {
+        let left: Vec<u8> = "this is a test".bytes().collect();
+        let right: Vec<u8> = "wokka wokka!!!".bytes().collect();
+        assert_eq!(37, hamming_distance(&left, &right));
     }
 }
