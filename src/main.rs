@@ -31,14 +31,13 @@ fn main() {
         }
     }).0;
 
+    let mut blocks: Vec<Vec<u8>> = Vec::new();
     let mut key = String::new();
     for i in 0..key_size {
-        let block = bytes.chunks(key_size)
+        blocks.push(bytes.chunks(key_size)
             .filter_map(|c| c.get(i))
             .map(|b| b.clone())
-            .collect::<Vec<u8>>();
-
-
+            .collect::<Vec<u8>>())
     }
 }
 
@@ -58,17 +57,17 @@ fn repeating_xor(input: &Vec<u8>, key: &Vec<u8>) -> Vec<u8>
         .collect::<Vec<u8>>();
 }
 
-fn crack_single_byte_xor(input: &Vec<u8>) -> Vec<u8>
+fn crack_single_byte_xor(input: &Vec<u8>) -> (u8, Vec<u8>)
 {
     let characters = (0..=255).collect::<Vec<u8>>();
-    let mut strings = characters.iter()
+    let mut strings: Vec<(u8, Vec<u8>)> = characters.iter()
         .map(|character| {
             let mask = vec![character.clone(); input.len()];
-            return fixed_xor(input, &mask);
+            return (character.clone(), fixed_xor(input, &mask));
         })
-        .collect::<Vec<Vec<u8>>>();
+        .collect();
 
-    strings.sort_unstable_by(sort_by_score_desc);
+    strings.sort_unstable_by(|left, right| sort_by_score_desc(&left.1, &right.1));
 
     return strings.first().unwrap().clone();
 }
@@ -155,21 +154,21 @@ mod test
         let input = "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736";
         let expected = "Cooking MC's like a pound of bacon";
 
-        assert_eq!(expected, String::from_utf8(crack_single_byte_xor(&decode(input).unwrap())).unwrap());
+        assert_eq!(expected, String::from_utf8(crack_single_byte_xor(&decode(input).unwrap()).1).unwrap());
     }
 
     #[test]
     fn case4test()
     {
         let file = BufReader::new(File::open("4.txt").unwrap());
-        let mut lines = file.lines()
+        let mut lines: Vec<(u8, Vec<u8>)> = file.lines()
             .filter_map(|x| x.ok())
             .map(|x| decode(x).unwrap())
             .map(|x| crack_single_byte_xor(&x))
-            .collect::<Vec<Vec<u8>>>();
+            .collect();
 
-        lines.sort_unstable_by(sort_by_score_desc);
-        assert_eq!("Now that the party is jumping\n", String::from_utf8(lines.first().unwrap().clone()).unwrap());
+        lines.sort_unstable_by(|left, right| sort_by_score_desc(&left.1, &right.1));
+        assert_eq!("Now that the party is jumping\n", String::from_utf8(lines.first().unwrap().clone().1).unwrap());
     }
 
     #[test]
