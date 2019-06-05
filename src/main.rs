@@ -1,16 +1,13 @@
 use base64::decode as base64_decode;
-use base64::encode as base64_encode;
 use bit_vec::BitVec;
-use hex::decode;
-use hex::encode as hex_encode;
+use openssl::symm::{decrypt, Cipher};
 use std::cmp::Ordering;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::Read;
 
 fn main() {
-    let input = BufReader::new(File::open("6.txt").expect("File not found!"));
+    let input = BufReader::new(File::open("7.txt").expect("File not found!"));
     let base64 = input
         .lines()
         .map(|x| x.unwrap())
@@ -18,10 +15,8 @@ fn main() {
         .join("");
     let bytes = base64_decode(&base64).unwrap();
 
-    let (key, final_bytes) = crack_repeating_xor(&bytes);
-
-    println!("{}", String::from_utf8(key).unwrap());
-    println!("{}", String::from_utf8(final_bytes).unwrap());
+    let key = b"YELLOW SUBMARINE";
+    println!("{}", decrypt_aes_128_ecb(key, &bytes));
 }
 
 fn fixed_xor(input: &[u8], mask: &[u8]) -> Vec<u8> {
@@ -75,7 +70,7 @@ fn crack_repeating_xor(input: &Vec<u8>) -> (Vec<u8>, Vec<u8>) {
     let blocks: Vec<Vec<u8>> = input.chunks(key_size).map(|x| Vec::from(x)).collect();
 
     let mut transposed_blocks: Vec<Vec<u8>> = Vec::with_capacity(blocks.len());
-    for i in 0..key_size {
+    for _ in 0..key_size {
         transposed_blocks.push(Vec::new());
     }
 
@@ -110,6 +105,12 @@ fn crack_repeating_xor(input: &Vec<u8>) -> (Vec<u8>, Vec<u8>) {
     }
 
     return (key, final_bytes);
+}
+
+fn decrypt_aes_128_ecb(key: &[u8], input: &[u8]) -> String {
+    let cipher = Cipher::aes_128_ecb();
+
+    String::from_utf8(decrypt(cipher, &key.as_ref(), None, &input).unwrap()).unwrap()
 }
 
 fn sort_by_score_desc(left: &Vec<u8>, right: &Vec<u8>) -> Ordering {
@@ -162,6 +163,9 @@ fn hamming_distance(left: &[u8], right: &[u8]) -> u32 {
 #[cfg(test)]
 mod test {
     use super::*;
+    use base64::encode as base64_encode;
+    use hex::decode;
+    use hex::encode as hex_encode;
     use std::fs::File;
     use std::io::BufRead;
     use std::io::BufReader;
