@@ -1,7 +1,3 @@
-extern crate hex;
-extern crate base64;
-extern crate bit_vec;
-
 use hex::decode;
 use hex::encode as hex_encode;
 use base64::encode as base64_encode;
@@ -21,24 +17,10 @@ fn main() {
         .join("");
     let bytes = base64_decode(&base64).unwrap();
 
-    let key_size = (2..=40).fold((0, 0), |size, k| {
-        let distance = hamming_distance(&bytes[0..k], &bytes[k..2 * k]) / k as u32;
+    let (key, final_bytes) = crack_repeating_xor(&bytes);
 
-        if size.1 == 0 || distance < size.1 {
-            (k, distance)
-        } else {
-            size
-        }
-    }).0;
-
-    let mut blocks: Vec<Vec<u8>> = Vec::new();
-    let mut key = String::new();
-    for i in 0..key_size {
-        blocks.push(bytes.chunks(key_size)
-            .filter_map(|c| c.get(i))
-            .map(|b| b.clone())
-            .collect::<Vec<u8>>())
-    }
+    println!("{}", String::from_utf8(key).unwrap());
+    println!("{}", String::from_utf8(final_bytes).unwrap());
 }
 
 fn fixed_xor(input: &[u8], mask: &[u8]) -> Vec<u8>
@@ -70,6 +52,59 @@ fn crack_single_byte_xor(input: &Vec<u8>) -> (u8, Vec<u8>)
     strings.sort_unstable_by(|left, right| sort_by_score_desc(&left.1, &right.1));
 
     return strings.first().unwrap().clone();
+}
+
+fn crack_repeating_xor(input: &Vec<u8>) -> (Vec<u8>, Vec<u8>)
+{
+    let key_size = (2..=40).fold((0, 0.0), |size, k| {
+        let chunks = input.chunks_exact(k * 2);
+        let total_chunks = chunks.len() as f32;
+        let distance = chunks.fold(0.0, |d, chunk| d + hamming_distance(&chunk[0..k], &chunk[k..2 * k]) as f32 / k as f32) / total_chunks;
+
+        if size.1 == 0.0 || distance < size.1 {
+            (k, distance)
+        } else {
+            size
+        }
+    }).0;
+
+    let blocks: Vec<Vec<u8>> = input.chunks(key_size)
+        .map(|x| Vec::from(x))
+        .collect();
+
+    let mut transposed_blocks: Vec<Vec<u8>> = Vec::with_capacity(blocks.len());
+    for i in 0..key_size {
+        transposed_blocks.push(Vec::new());
+    }
+
+    for position in 0..key_size {
+        for block in &blocks {
+            match block.get(position) {
+                Some(byte) => transposed_blocks.get_mut(position).unwrap().push(byte.clone()),
+                None => {}
+            }
+        }
+    }
+
+    let mut key = Vec::new();
+    let mut decoded_blocks = Vec::new();
+    for block in transposed_blocks {
+        let solution = crack_single_byte_xor(&block);
+        key.push(solution.0);
+        decoded_blocks.push(solution.1);
+    }
+
+    let mut final_bytes = Vec::new();
+    for i in 0..decoded_blocks.get(0).unwrap().len() {
+        for block in &decoded_blocks {
+            match block.get(i) {
+                Some(byte) => final_bytes.push(byte.clone()),
+                None => {}
+            }
+        }
+    }
+
+    return (key, final_bytes);
 }
 
 fn sort_by_score_desc(left: &Vec<u8>, right: &Vec<u8>) -> Ordering
