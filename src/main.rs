@@ -1,5 +1,7 @@
 use base64::decode as base64_decode;
 use bit_vec::BitVec;
+use hex::decode;
+use hex::encode as hex_encode;
 use openssl::symm::{decrypt, Cipher};
 use std::cmp::Ordering;
 use std::fs::File;
@@ -7,16 +9,21 @@ use std::io::BufRead;
 use std::io::BufReader;
 
 fn main() {
-    let input = BufReader::new(File::open("7.txt").expect("File not found!"));
-    let base64 = input
+    let input = BufReader::new(File::open("8.txt").expect("File not found!"));
+    let lines = input
         .lines()
-        .map(|x| x.unwrap())
-        .collect::<Vec<String>>()
-        .join("");
-    let bytes = base64_decode(&base64).unwrap();
+        .map(|x| decode(x.unwrap()).unwrap())
+        .collect::<Vec<Vec<u8>>>();
 
-    let key = b"YELLOW SUBMARINE";
-    println!("{}", decrypt_aes_128_ecb(key, &bytes));
+    for (i, line) in lines.iter().enumerate() {
+        for (lc, left) in line.chunks(8).enumerate() {
+            for (rc, right) in line.chunks(8).enumerate().skip(lc + 1) {
+                if left == right {
+                    println!("{}@{},{}: {}", i + 1, lc + 1, rc + 1, hex_encode(left));
+                }
+            }
+        }
+    }
 }
 
 fn fixed_xor(input: &[u8], mask: &[u8]) -> Vec<u8> {
@@ -164,8 +171,6 @@ fn hamming_distance(left: &[u8], right: &[u8]) -> u32 {
 mod test {
     use super::*;
     use base64::encode as base64_encode;
-    use hex::decode;
-    use hex::encode as hex_encode;
     use std::fs::File;
     use std::io::BufRead;
     use std::io::BufReader;
