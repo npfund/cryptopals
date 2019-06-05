@@ -12,14 +12,14 @@ fn main() {
     let input = BufReader::new(File::open("8.txt").expect("File not found!"));
     let lines = input
         .lines()
-        .map(|x| decode(x.unwrap()).unwrap())
+        .map(|x| Vec::from(x.unwrap().as_bytes()))
         .collect::<Vec<Vec<u8>>>();
 
     for (i, line) in lines.iter().enumerate() {
-        for (lc, left) in line.chunks(8).enumerate() {
-            for (rc, right) in line.chunks(8).enumerate().skip(lc + 1) {
+        for (lc, left) in line.chunks(16).enumerate() {
+            for (rc, right) in line.chunks(16).enumerate().skip(lc + 1) {
                 if left == right {
-                    println!("{}@{},{}: {}", i + 1, lc + 1, rc + 1, hex_encode(left));
+                    println!("{}@{},{}: {}", i + 1, lc + 1, rc + 1, String::from_utf8(left.to_vec()).unwrap());
                 }
             }
         }
