@@ -167,6 +167,11 @@ fn hamming_distance(left: &[u8], right: &[u8]) -> u32 {
         .fold(0, |sum, (l, r)| sum + if l == r { 0 } else { 1 });
 }
 
+fn pkcs7(input: &str, block_size: usize) -> String {
+    let padding = (block_size - input.len() % block_size) as u8;
+    format!("{}{}", input, String::from(padding as char).repeat(padding as usize))
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -240,5 +245,11 @@ I go crazy when I hear a cymbal"
         let left: Vec<u8> = "this is a test".bytes().collect();
         let right: Vec<u8> = "wokka wokka!!!".bytes().collect();
         assert_eq!(37, hamming_distance(&left, &right));
+    }
+
+    #[test]
+    fn case9test() {
+        let input = "YELLOW SUBMARINE";
+        assert_eq!("YELLOW SUBMARINE\x04\x04\x04\x04", pkcs7(input, 20))
     }
 }
