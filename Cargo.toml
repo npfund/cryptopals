@@ -2,10 +2,10 @@
 name = "cryptopals"
 version = "0.1.0"
 authors = ["Nick Pfundstein <nickpfundstein@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-hex = "0.3.2"
-base64 = "0.10.0"
-bit-vec = "0.5.0"
-openssl = "0.10.23"
+hex = "0.4.3"
+base64 = "0.21.0"
+bit-vec = "0.6.3"
+openssl = "0.10.48"
